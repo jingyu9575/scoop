@@ -41,7 +41,7 @@ if (!$manifest_file) {
 }
 
 $dir = versiondir $app 'current' $global
-$original_dir = versiondir $app $manifest.version $global
+$original_dir = versiondir $app 'current' $global
 $persist_dir = persistdir $app $global
 
 if($status.installed) {
@@ -86,7 +86,7 @@ if($status.installed) {
     Write-Output "Installed:"
     $versions = versions $app $global
     $versions | ForEach-Object {
-        $dir = versiondir $app $_ $global
+        $dir = versiondir $app 'current' $global
         if($global) { $dir += " *global*" }
         Write-Output "  $dir"
     }

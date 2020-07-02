@@ -35,7 +35,7 @@ $errors = $false
 # Uninstall given app
 function do_uninstall($app, $global) {
     $version = current_version $app $global
-    $dir = versiondir $app $version $global
+    $dir = versiondir $app 'current' $global
     $manifest = installed_manifest $app $version $global
     $install = install_info $app $version $global
     $architecture = $install.architecture

@@ -41,7 +41,7 @@ function save_installed_manifest($app, $bucket, $dir, $url) {
 }
 
 function installed_manifest($app, $version, $global) {
-    parse_json "$(versiondir $app $version $global)\manifest.json"
+    parse_json "$(versiondir $app 'current' $global)\manifest.json"
 }
 
 function save_install_info($info, $dir) {
