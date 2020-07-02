@@ -36,7 +36,7 @@ function install_app($app, $architecture, $global, $suggested, $use_cache = $tru
 
     write-output "Installing '$app' ($version) [$architecture]"
 
-    $dir = ensure (versiondir $app $version $global)
+    $dir = ensure (versiondir $app 'current' $global)
     $original_dir = $dir # keep reference to real (not linked) directory
     $persist_dir = persistdir $app $global
 
@@ -44,7 +44,6 @@ function install_app($app, $architecture, $global, $suggested, $use_cache = $tru
     pre_install $manifest $architecture
     run_installer $fname $manifest $architecture $dir $global
     ensure_install_dir_not_in_path $dir $global
-    $dir = link_current $dir
     create_shims $manifest $dir $global $architecture
     create_startmenu_shortcuts $manifest $dir $global $architecture
     install_psmodule $manifest $dir $global
@@ -60,7 +59,10 @@ function install_app($app, $architecture, $global, $suggested, $use_cache = $tru
 
     # save info for uninstall
     save_installed_manifest $app $bucket $dir $url
-    save_install_info @{ 'architecture' = $architecture; 'url' = $url; 'bucket' = $bucket } $dir
+    save_install_info @{
+        'architecture' = $architecture; 'url' = $url; 'bucket' = $bucket;
+        'version' = $version;
+    } $dir
 
     if($manifest.suggest) {
         $suggested[$app] = $manifest.suggest
@@ -849,62 +851,6 @@ function rm_shims($manifest, $global, $arch) {
     }
 }
 
-# Gets the path for the 'current' directory junction for
-# the specified version directory.
-function current_dir($versiondir) {
-    $parent = split-path $versiondir
-    return "$parent\current"
-}
-
-
-# Creates or updates the directory junction for [app]/current,
-# pointing to the specified version directory for the app.
-#
-# Returns the 'current' junction directory if in use, otherwise
-# the version directory.
-function link_current($versiondir) {
-    if(get_config NO_JUNCTIONS) { return $versiondir }
-
-    $currentdir = current_dir $versiondir
-
-    write-host "Linking $(friendly_path $currentdir) => $(friendly_path $versiondir)"
-
-    if($currentdir -eq $versiondir) {
-        abort "Error: Version 'current' is not allowed!"
-    }
-
-    if(test-path $currentdir) {
-        # remove the junction
-        attrib -R /L $currentdir
-        & "$env:COMSPEC" /c rmdir $currentdir
-    }
-
-    & "$env:COMSPEC" /c mklink /j $currentdir $versiondir | out-null
-    attrib $currentdir +R /L
-    return $currentdir
-}
-
-# Removes the directory junction for [app]/current which
-# points to the current version directory for the app.
-#
-# Returns the 'current' junction directory (if it exists),
-# otherwise the normal version directory.
-function unlink_current($versiondir) {
-    if(get_config NO_JUNCTIONS) { return $versiondir }
-    $currentdir = current_dir $versiondir
-
-    if(test-path $currentdir) {
-        write-host "Unlinking $(friendly_path $currentdir)"
-
-        # remove read-only attribute on link
-        attrib $currentdir -R /L
-
-        # remove the junction
-        & "$env:COMSPEC" /c "rmdir `"$currentdir`""
-        return $currentdir
-    }
-    return $versiondir
-}
 
 # to undo after installers add to path so that scoop manifest can keep track of this instead
 function ensure_install_dir_not_in_path($dir, $global) {

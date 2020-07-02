@@ -6,10 +6,9 @@ function current_version($app, $global) {
     @(versions $app $global)[-1]
 }
 function versions($app, $global) {
-    $appdir = appdir $app $global
-    if(!(test-path $appdir)) { return @() }
-
-    sort_versions (Get-ChildItem $appdir -dir -attr !reparsePoint | Where-Object { $null -ne $(Get-ChildItem $_.fullname) } | ForEach-Object { $_.name })
+    $version = (install_info $app 'current' $global).version
+    if (!$version) { return @() }
+    @($version)
 }
 
 function version($ver) {

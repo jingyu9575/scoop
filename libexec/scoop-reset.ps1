@@ -70,7 +70,6 @@ $apps | ForEach-Object {
     $install = install_info $app $version $global
     $architecture = $install.architecture
 
-    $dir = link_current $dir
     create_shims $manifest $dir $global $architecture
     create_startmenu_shortcuts $manifest $dir $global $architecture
     env_add_path $manifest $dir
