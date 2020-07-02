@@ -86,7 +86,7 @@ if (!$apps) { exit 0 }
     env_rm $manifest $global
 
     $appdir = appdir $app $global
-    removedir_recurse $appdir
+    removedir_recurse $appdir $global
     if (Test-Path $appdir) {
         error "Couldn't remove '$(friendly_path $appdir)'; it may be in use."
         continue

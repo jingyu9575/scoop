@@ -254,7 +254,7 @@ function update($app, $global, $quiet = $false, $independent, $suggested, $use_c
     env_rm_path $old_manifest $dir $global
     env_rm $old_manifest $global
 
-    removedir_recurse $dir
+    removedir_recurse $dir $global
 
     if ($bucket) {
         # add bucket name it was installed from

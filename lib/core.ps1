@@ -538,8 +538,8 @@ function movedir_recurse($src, $dest) {
 	}
 }
 
-function removedir_recurse($dir) {
-    $tempdir = "$(ensure (tempdir))\$(New-Guid)"
+function removedir_recurse($dir, $global) {
+    $tempdir = "$(ensure (tempdir $global))\$(New-Guid)"
     try {
         movedir_recurse $dir $tempdir
         Remove-Item $tempdir -Recurse -Force -ErrorAction Stop
