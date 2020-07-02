@@ -179,6 +179,7 @@ function shimdir($global) { "$(basedir $global)\shims" }
 function appdir($app, $global) { "$(appsdir $global)\$app" }
 function versiondir($app, $version, $global) { "$(appdir $app $global)\$version" }
 function persistdir($app, $global) { "$(basedir $global)\persist\$app" }
+function tempdir($global) { "$(basedir $global)\temp" }
 function usermanifestsdir { "$(basedir)\workspace" }
 function usermanifest($app) { "$(usermanifestsdir)\$app.json" }
 function cache_path($app, $version, $url) { "$cachedir\$app#$version#$($url -replace '[^\w\.\-]+', '_')" }
@@ -514,6 +515,37 @@ function movedir($from, $to) {
     1..10 | ForEach-Object {
         if (Test-Path $from) {
             Start-Sleep -Milliseconds 100
+        }
+    }
+}
+
+function movedir_recurse($src, $dest) {
+	try {
+		if ((Test-Path -LiteralPath $src) -and (Test-Path -LiteralPath $dest)) {
+			Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction Stop
+		}
+		Move-Item -LiteralPath $src $dest -Force -ErrorAction Stop
+	} catch {
+		if (!(Test-Path -LiteralPath $src -PathType Container) -or
+			(Test-Path -LiteralPath $dest -PathType Leaf)) {
+			throw
+		}
+		New-Item $dest -ItemType Directory -Force | Out-Null
+		Get-ChildItem -LiteralPath $src -Force | ForEach-Object {
+			$filename = $_.Name
+			movedir_recurse $_.FullName "$dest\$filename"
+		}
+	}
+}
+
+function removedir_recurse($dir) {
+    $tempdir = "$(ensure (tempdir))\$(New-Guid)"
+    try {
+        movedir_recurse $dir $tempdir
+        Remove-Item $tempdir -Recurse -Force -ErrorAction Stop
+    } catch {
+        if (Test-Path $tempdir) {
+            warn "Couldn't remove temporary directory."
         }
     }
 }

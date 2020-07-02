@@ -59,8 +59,7 @@ if (!$apps) { exit 0 }
     #region Workaround for #2952
     $processdir = appdir $app $global | Resolve-Path | Select-Object -ExpandProperty Path
     if (Get-Process | Where-Object { $_.Path -like "$processdir\*" }) {
-        error "Application is still running. Close all instances and try again."
-        continue
+        warn "Application is still running."
     }
     #endregion Workaround for #2952
 
@@ -86,41 +85,11 @@ if (!$apps) { exit 0 }
     env_rm_path $manifest $refdir $global
     env_rm $manifest $global
 
-    try {
-        # unlink all potential old link before doing recursive Remove-Item
-        unlink_persist_data $dir
-        Remove-Item $dir -Recurse -Force -ErrorAction Stop
-    } catch {
-        if (Test-Path $dir) {
-            error "Couldn't remove '$(friendly_path $dir)'; it may be in use."
-            continue
-        }
-    }
-
-    # remove older versions
-    $old = @(versions $app $global)
-    foreach ($oldver in $old) {
-        Write-Host "Removing older version ($oldver)."
-        $dir = versiondir $app $oldver $global
-        try {
-            # unlink all potential old link before doing recursive Remove-Item
-            unlink_persist_data $dir
-            Remove-Item $dir -Recurse -Force -ErrorAction Stop
-        } catch {
-            error "Couldn't remove '$(friendly_path $dir)'; it may be in use."
-            continue app_loop
-        }
-    }
-
-    if (@(versions $app $global).length -eq 0) {
-        $appdir = appdir $app $global
-        try {
-            # if last install failed, the directory seems to be locked and this
-            # will throw an error about the directory not existing
-            Remove-Item $appdir -Recurse -Force -ErrorAction Stop
-        } catch {
-            if ((Test-Path $appdir)) { throw } # only throw if the dir still exists
-        }
+    $appdir = appdir $app $global
+    removedir_recurse $appdir
+    if (Test-Path $appdir) {
+        error "Couldn't remove '$(friendly_path $appdir)'; it may be in use."
+        continue
     }
 
     # purge persistant data

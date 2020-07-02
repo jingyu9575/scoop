@@ -238,14 +238,13 @@ function update($app, $global, $quiet = $false, $independent, $suggested, $use_c
     $check_hash = $false
     # endregion Workaround
 
-    $dir = versiondir $app $old_version $global
+    $dir = versiondir $app 'current' $global
     $persist_dir = persistdir $app $global
 
     #region Workaround for #2952
     $processdir = appdir $app $global | Resolve-Path | Select-Object -ExpandProperty Path
     if (Get-Process | Where-Object { $_.Path -like "$processdir\*" }) {
-        error "Application is still running. Close all instances and try again."
-        return
+        warn "Application is still running."
     }
     #endregion Workaround for #2952
 
@@ -255,19 +254,7 @@ function update($app, $global, $quiet = $false, $independent, $suggested, $use_c
     env_rm_path $old_manifest $dir $global
     env_rm $old_manifest $global
 
-    $refdir = $dir
-
-    if ($force -and ($old_version -eq $version)) {
-        if (!(Test-Path "$dir/../_$version.old")) {
-            Move-Item "$dir" "$dir/../_$version.old"
-        } else {
-            $i = 1
-            While (Test-Path "$dir/../_$version.old($i)") {
-                $i++
-            }
-            Move-Item "$dir" "$dir/../_$version.old($i)"
-        }
-    }
+    removedir_recurse $dir
 
     if ($bucket) {
         # add bucket name it was installed from
