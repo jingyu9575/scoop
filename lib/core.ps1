@@ -610,7 +610,44 @@ function shim($path, $global, $name, $arg) {
 
     if($path -match '\.(exe|com)$') {
         # for programs with no awareness of any shell
-        Copy-Item "$(versiondir 'scoop' 'current')\supporting\shimexe\bin\shim.exe" "$shim.exe" -force
+        if (!([System.Management.Automation.PSTypeName] 'WinAPI.ShimUtil').Type) {
+            Add-Type -Name 'ShimUtil' -Namespace 'WinAPI' -MemberDefinition '
+                [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+                struct SHFILEINFO {
+                    public IntPtr hIcon;
+                    public int iIcon;
+                    public uint dwAttributes;
+                    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+                    public string szDisplayName;
+                    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+                    public string szTypeName;
+                }
+                [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+                static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes,
+                    ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
+                [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+                static extern IntPtr CheckElevation(string lpApplicationName,
+                    ref uint pdwFlags, IntPtr hChildToken, ref uint pdwRunLevel, ref uint pdwReason);
+                public static bool IsExecutableGUI(string filename) {
+                    SHFILEINFO info = default(SHFILEINFO);
+                    var result = SHGetFileInfo(filename, 0, ref info,
+                        (uint) Marshal.SizeOf<SHFILEINFO>(), /*SHGFI_EXETYPE*/ 0x2000);
+                    return ((uint) result) >> 16 != 0;
+                }
+                public static bool IsExecutableElevated(string filename) {
+                    uint flags = 0, runLevel = 0, reason = 0;
+                    CheckElevation(filename, ref flags, IntPtr.Zero,
+                        ref runLevel, ref reason);
+                    return runLevel > 0;
+                }
+            '
+        }
+        $shimsrc = if ([Environment]::Is64BitOperatingSystem) { 'x64' } else { 'x86' }
+        $shimsrc += '\shim'
+        if ([WinAPI.ShimUtil]::IsExecutableGUI($path)) { $shimsrc += '-gui' }
+        if ([WinAPI.ShimUtil]::IsExecutableElevated($path)) { $shimsrc += '-admin' }
+        $shimsrc += '.exe'
+        Copy-Item "$(versiondir 'scoop' 'current')\supporting\shimexe\bin\$shimsrc" "$shim.exe" -force
         write-output "path = $resolved_path" | out-file "$shim.shim" -encoding utf8
         if($arg) {
             write-output "args = $arg" | out-file "$shim.shim" -encoding utf8 -append
