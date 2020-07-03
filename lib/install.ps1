@@ -1044,6 +1044,14 @@ function persist_data($manifest, $original_dir, $persist_dir) {
             $source = fullpath "$dir\$source"
             $target = fullpath "$persist_dir\$target"
 
+            if ((Test-Path $source) -and ($null -ne (Get-Item $source).LinkType)) {
+                if ((Get-Item $source) -is [System.IO.DirectoryInfo]) {
+                    attrib -R /L $source
+                    & "$env:COMSPEC" /c "rmdir /s /q `"$source`""
+                } else {
+                    & "$env:COMSPEC" /c "del `"$source`""
+                }
+            }
             # if we have had persist data in the store, just create link and go
             if (Test-Path $target) {
                 # if there is also a source data, rename it (to keep a original backup)

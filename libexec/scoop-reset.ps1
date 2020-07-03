@@ -74,8 +74,6 @@ $apps | ForEach-Object {
     create_startmenu_shortcuts $manifest $dir $global $architecture
     env_add_path $manifest $dir
     env_set $manifest $dir $global
-    # unlink all potential old link before re-persisting
-    unlink_persist_data $original_dir
     persist_data $manifest $original_dir $persist_dir
     persist_permission $manifest $global
 }
