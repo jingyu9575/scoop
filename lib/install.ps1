@@ -1026,6 +1026,7 @@ function persist_def($persist) {
 }
 
 function persist_data($manifest, $original_dir, $persist_dir) {
+    #Requires -Version 5.0
     $persist = $manifest.persist
     if($persist) {
         $persist_dir = ensure $persist_dir
@@ -1045,12 +1046,7 @@ function persist_data($manifest, $original_dir, $persist_dir) {
             $target = fullpath "$persist_dir\$target"
 
             if ((Test-Path $source) -and ($null -ne (Get-Item $source).LinkType)) {
-                if ((Get-Item $source) -is [System.IO.DirectoryInfo]) {
-                    attrib -R /L $source
-                    & "$env:COMSPEC" /c "rmdir /s /q `"$source`""
-                } else {
-                    & "$env:COMSPEC" /c "del `"$source`""
-                }
+                Remove-Item $source -Force -Recurse # only safe on PowerShell 5+!
             }
             # if we have had persist data in the store, just create link and go
             if (Test-Path $target) {
@@ -1075,11 +1071,10 @@ function persist_data($manifest, $original_dir, $persist_dir) {
             # create link
             if (is_directory $target) {
                 # target is a directory, create junction
-                & "$env:COMSPEC" /c "mklink /j `"$source`" `"$target`"" | out-null
-                attrib $source +R /L
+                New-Item $source -ItemType Junction -Value $target | Out-Null
             } else {
                 # target is a file, create hard link
-                & "$env:COMSPEC" /c "mklink /h `"$source`" `"$target`"" | out-null
+                New-Item $source -ItemType HardLink -Value $target | Out-Null
             }
         }
     }
