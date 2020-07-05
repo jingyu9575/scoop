@@ -721,7 +721,9 @@ function Confirm-InstallationStatus {
     $Installed = @()
     $Apps | Select-Object -Unique | Where-Object { $_.Name -ne 'scoop' } | ForEach-Object {
         $App, $null, $null = parse_app $_
-        if ($Global) {
+        if (-not ($App -replace '\.', '')) {
+            error "'$App' isn't a supported app name."
+        } elseif ($Global) {
             if (installed $App $true) {
                 $Installed += ,@($App, $true)
             } elseif (installed $App $false) {
