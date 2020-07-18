@@ -180,6 +180,7 @@ function appdir($app, $global) { "$(appsdir $global)\$app" }
 function versiondir($app, $version, $global) { "$(appdir $app $global)\$version" }
 function persistdir($app, $global) { "$(basedir $global)\persist\$app" }
 function tempdir($global) { "$(basedir $global)\temp" }
+function hooksdir($global) { "$(basedir $global)\hooks" }
 function usermanifestsdir { "$(basedir)\workspace" }
 function usermanifest($app) { "$(usermanifestsdir)\$app.json" }
 function cache_path($app, $version, $url) { "$cachedir\$app#$version#$($url -replace '[^\w\.\-]+', '_')" }
@@ -1020,6 +1021,14 @@ function get_magic_bytes_pretty($file, $glue = ' ') {
     }
 
     return (get_magic_bytes $file | ForEach-Object { $_.ToString('x2') }) -join $glue
+}
+
+function run_hook_script($app, $name, $global) {
+    $file = "$(hooksdir $global)\$app\$name.ps1"
+    if (Test-Path $file -PathType Leaf) {
+        Write-Output "Running hook script '$name'..."
+        . $file
+    }
 }
 
 ##################

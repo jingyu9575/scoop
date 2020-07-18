@@ -56,6 +56,7 @@ function install_app($app, $architecture, $global, $suggested, $use_cache = $tru
     persist_permission $manifest $global
 
     post_install $manifest $architecture
+    run_hook_script $app 'post-install' $global
 
     # save info for uninstall
     save_installed_manifest $app $bucket $dir $url
