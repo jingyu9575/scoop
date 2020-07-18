@@ -822,7 +822,7 @@ function create_shims($manifest, $dir, $global, $arch) {
     }
 }
 
-function rm_shim($name, $shimdir) {
+function rm_shim($name, $shimdir, $global) {
     $shim = "$shimdir\$name.ps1"
 
     if(!(test-path $shim)) { # handle no shim from failed install
@@ -835,7 +835,7 @@ function rm_shim($name, $shimdir) {
     # other shim types might be present
     '', '.exe', '.shim', '.cmd' | ForEach-Object {
         if(test-path -Path "$shimdir\$name$_" -PathType leaf) {
-            Remove-Item "$shimdir\$name$_"
+            remove_exe_file "$shimdir\$name$_" $global
         }
     }
 }
@@ -847,7 +847,7 @@ function rm_shims($manifest, $global, $arch) {
         $target, $name, $null = shim_def $_
         $shimdir = shimdir $global
 
-        rm_shim $name $shimdir
+        rm_shim $name $shimdir $global
     }
 }
 

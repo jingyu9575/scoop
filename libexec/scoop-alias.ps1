@@ -75,7 +75,7 @@ function rm_alias($name) {
     if($aliases.$name) {
         "Removing alias $name..."
 
-        rm_shim $aliases.$name (shimdir $false)
+        rm_shim $aliases.$name (shimdir $false) $false
 
         $aliases.PSObject.Properties.Remove($name)
         set_config $script:config_alias $aliases | Out-Null

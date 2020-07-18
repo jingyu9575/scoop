@@ -550,6 +550,15 @@ function removedir_recurse($dir, $global) {
     }
 }
 
+function remove_exe_file($file, $global) {
+    try {
+        Remove-Item $file -Recurse -Force -ErrorAction Stop
+    } catch {
+        $tempfile = "$(ensure (tempdir $global))\$(New-Guid)"
+		Move-Item -LiteralPath $file $tempfile
+    }
+}
+
 function get_app_name($path) {
     if ($path -match '([^/\\]+)[/\\]current[/\\]') {
         return $matches[1].tolower()
