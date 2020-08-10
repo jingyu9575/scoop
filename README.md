@@ -1,4 +1,4 @@
-## jingyu9575/Scoop
+# jingyu9575/Scoop
 
 This is an unofficial fork of [Scoop](https://scoop.sh/), a command-line installer for Windows. Many incompatible and subjective changes have been made. Use at your own risk.
 
