@@ -36,34 +36,55 @@ function install_app($app, $architecture, $global, $suggested, $use_cache = $tru
 
     write-output "Installing '$app' ($version) [$architecture]"
 
-    $dir = ensure (versiondir $app 'current' $global)
+    $dir = versiondir $app 'current' $global
     $original_dir = $dir # keep reference to real (not linked) directory
     $persist_dir = persistdir $app $global
 
-    $fname = dl_urls $app $version $manifest $bucket $architecture $dir $use_cache $check_hash
-    pre_install $manifest $architecture
-    run_installer $fname $manifest $architecture $dir $global
-    ensure_install_dir_not_in_path $dir $global
-    create_shims $manifest $dir $global $architecture
-    create_startmenu_shortcuts $manifest $dir $global $architecture
-    install_psmodule $manifest $dir $global
-    if($global) { ensure_scoop_in_path $global } # can assume local scoop is in path
-    env_add_path $manifest $dir $global $architecture
-    env_set $manifest $dir $global $architecture
+    $is_successful = $false
+    try {
+        $dir = ensure $dir
 
-    # persist data
-    persist_data $manifest $original_dir $persist_dir
-    persist_permission $manifest $global
+        $fname = dl_urls $app $version $manifest $bucket $architecture $dir $use_cache $check_hash
+        pre_install $manifest $architecture
+        run_installer $fname $manifest $architecture $dir $global
+        ensure_install_dir_not_in_path $dir $global
+        create_shims $manifest $dir $global $architecture
+        create_startmenu_shortcuts $manifest $dir $global $architecture
+        install_psmodule $manifest $dir $global
+        if($global) { ensure_scoop_in_path $global } # can assume local scoop is in path
+        env_add_path $manifest $dir $global $architecture
+        env_set $manifest $dir $global $architecture
 
-    post_install $manifest $architecture
-    run_hook_script $app 'post-install' $global
+        # persist data
+        persist_data $manifest $original_dir $persist_dir
+        persist_permission $manifest $global
 
-    # save info for uninstall
-    save_installed_manifest $app $bucket $dir $url
-    save_install_info @{
-        'architecture' = $architecture; 'url' = $url; 'bucket' = $bucket;
-        'version' = $version;
-    } $dir
+        post_install $manifest $architecture
+        run_hook_script $app 'post-install' $global
+
+        # save info for uninstall
+        save_installed_manifest $app $bucket $dir $url
+        save_install_info @{
+            'architecture' = $architecture; 'url' = $url; 'bucket' = $bucket;
+            'version' = $version;
+        } $dir
+
+        $is_successful = $true
+    } finally {
+        if (!$is_successful) {
+            try {
+                if ($Host.UI.RawUI.CursorPosition.X -ne 0) {
+                    Write-Host
+                }
+            } catch { [void]0 }
+            warn "Installation failed. Cleaning up '$app'."
+            removedir_recurse $dir $global
+            $parent_dir = appdir $app $global
+            if (![bool](Get-ChildItem "$parent_dir\*" -Force)) {
+                Remove-Item $parent_dir
+            }
+        }
+    }
 
     if($manifest.suggest) {
         $suggested[$app] = $manifest.suggest
